@@ -69,13 +69,13 @@ function printFullRow(row: Row, isLastRow) {
                 // Note that this will cut cells with specified custom min height at page break
                 if (Array.isArray(cell.text) && cell.text.length > remainingLineCount) {
                     remainingTexts[column.dataKey] = cell.text.splice(remainingLineCount, cell.text.length);
-                    let rCellHeight = cell.height - remainingPageSpace;
+                    let rCellHeight = cell.height - Math.floor(cell.text.length * fontHeight);
                     if (rCellHeight > remainingRowHeight) {
                         remainingRowHeight = rCellHeight;
                     }
                 }
 
-                cell.height = remainingPageSpace;
+                cell.height = Math.min(remainingPageSpace, cell.height);
             }
         }
     }
