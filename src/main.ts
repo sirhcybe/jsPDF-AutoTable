@@ -5,6 +5,7 @@ import {calculateWidths} from './widthCalculator';
 import {parseInput} from './inputParser';
 import {setDefaults, setupState, resetState} from './state';
 import './autoTableText';
+import './autoTableInput';
 import {applyUserStyles} from "./common";
 import {UserOptions} from "./interfaces";
 

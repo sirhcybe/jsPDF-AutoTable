@@ -1,6 +1,6 @@
 import {FONT_ROW_RATIO} from './config';
 import {getFillStyle, addTableBorder, applyStyles, applyUserStyles} from './common';
-import {Row, Table} from "./models";
+import {Row, Table, Cell} from "./models";
 import state from "./state";
 
 export function drawTable(table: Table) {
@@ -140,7 +140,7 @@ function printRow(row) {
     row.x = table.cursor.x;
 
     for (let column of table.columns) {
-        let cell = row.cells[column.dataKey];
+        let cell: Cell = row.cells[column.dataKey];
         if (!cell) {
             table.cursor.x += column.width;
             continue;
@@ -174,11 +174,21 @@ function printRow(row) {
         if (fillStyle) {
             state().doc.rect(cell.x, table.cursor.y, cell.width, cell.height, fillStyle);
         }
-        state().doc.autoTableText(cell.text, cell.textPos.x, cell.textPos.y, {
-            halign: cell.styles.halign,
-            valign: cell.styles.valign,
-            maxWidth: cell.width - cell.padding('left') - cell.padding('right')
-        });
+        if(cell.type === 'text') {
+            state().doc.autoTableText(cell.text, cell.textPos.x, cell.textPos.y, {
+                halign: cell.styles.halign,
+                valign: cell.styles.valign,
+                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+            });
+        } else if (cell.type === 'image') {
+            state().doc.addImage(cell.text[0], 'PNG', cell.x, table.cursor.y, cell.width, cell.height);
+        } else {
+            state().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
+                halign: cell.styles.halign,
+                valign: cell.styles.valign,
+                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+            });
+        }
 
         table.callCellHooks(table.cellHooks.didDrawCell, cell, row, column);
 

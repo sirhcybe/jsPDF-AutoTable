@@ -116,6 +116,15 @@ function fitContent(table) {
         for (let column of table.columns) {
             let cell = row.cells[column.dataKey];
             if (!cell) continue;
+            if (cell.type === 'image') {
+                if(cell.contentWidth > cell.width) {
+                    var ratio = cell.width / cell.contentWidth;
+                    row.height = ratio * cell.contentHeight;
+                } else {
+                    row.height = cell.contentHeight;
+                }
+                continue; 
+            }
 
             applyStyles(cell.styles);
             let textSpace = cell.width - cell.padding('horizontal');

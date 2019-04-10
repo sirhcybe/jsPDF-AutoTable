@@ -118,11 +118,14 @@ export class Cell {
     styles: any;
     text: string[];
     section: 'head' | 'body' | 'foot';
+    type: 'text' | 'input' | 'image';
+    fieldName: string;
+    contentHeight?: number;
 
     contentWidth = 0;
     wrappedWidth = 0;
     minWidth = 0;
-    textPos = {};
+    textPos: {x?:number, y?:number} = {};
     height = 0;
     width = 0;
     x: number;
@@ -136,6 +139,9 @@ export class Cell {
         this.colSpan = raw && raw.colSpan || 1;
         this.styles = assign(themeStyles, raw && raw.styles || {});
         this.section = section;
+        this.type = raw && raw.type || 'text';
+        this.fieldName = raw && raw.fieldName || '';
+        this.contentHeight = raw && raw.contentHeight || undefined;
 
         let text = '';
         let content = raw && typeof raw.content !== 'undefined' ? raw.content : raw;
@@ -152,7 +158,11 @@ export class Cell {
         let splitRegex = /\r\n|\r|\n/g;
         this.text = text.split(splitRegex);
 
-        this.contentWidth = this.padding('horizontal') + getStringWidth(this.text, this.styles);
+        if(raw && raw.contentWidth) {
+            this.contentWidth = raw && raw.contentWidth || undefined;
+        } else {
+            this.contentWidth = this.padding('horizontal') + getStringWidth(this.text, this.styles);
+        }
         if (typeof this.styles.cellWidth === 'number') {
             this.minWidth = this.styles.cellWidth;
             this.wrappedWidth = this.styles.cellWidth;
