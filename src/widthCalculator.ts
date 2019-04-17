@@ -1,6 +1,6 @@
-import {FONT_ROW_RATIO, getTheme} from './config';
-import {ellipsize, applyStyles} from './common';
-import {Table, Cell} from "./models";
+import { FONT_ROW_RATIO, getTheme } from './config';
+import { ellipsize, applyStyles } from './common';
+import { Table, Cell } from "./models";
 import state from "./state";
 
 /**
@@ -56,7 +56,7 @@ function applyRowSpans(table) {
                 if (cell.rowSpan > 1) {
                     let remaining = all.length - rowIndex;
                     let left = cell.rowSpan > remaining ? remaining : cell.rowSpan;
-                    rowSpanCells[column.dataKey] = {cell, left, row};
+                    rowSpanCells[column.dataKey] = { cell, left, row };
                 }
             }
         }
@@ -111,26 +111,29 @@ function applyColSpans(table) {
 }
 
 function fitContent(table) {
-    let rowSpanHeight = {count: 0, height: 0};
+    let rowSpanHeight = { count: 0, height: 0 };
     for (let row of table.allRows()) {
         for (let column of table.columns) {
             let cell = row.cells[column.dataKey];
             if (!cell) continue;
+
+            //Images may need to be scaled down to fit in the cell
+            //Text based content fitting should not apply to images
             if (cell.type === 'image') {
-                if(cell.contentWidth > cell.width) {
+                if (cell.contentWidth > cell.width) {
                     var ratio = cell.width / cell.contentWidth;
                     row.height = ratio * cell.contentHeight;
                 } else {
                     row.height = cell.contentHeight;
                 }
-                continue; 
+                continue;
             }
 
             applyStyles(cell.styles);
             let textSpace = cell.width - cell.padding('horizontal');
             if (cell.styles.overflow === 'linebreak') {
                 // Add one pt to textSpace to fix rounding error
-                cell.text = state().doc.splitTextToSize(cell.text, textSpace + 1 / (state().scaleFactor() || 1), {fontSize: cell.styles.fontSize});
+                cell.text = state().doc.splitTextToSize(cell.text, textSpace + 1 / (state().scaleFactor() || 1), { fontSize: cell.styles.fontSize });
             } else if (cell.styles.overflow === 'ellipsize') {
                 cell.text = ellipsize(cell.text, textSpace, cell.styles);
             } else if (cell.styles.overflow === 'hidden') {
@@ -143,13 +146,22 @@ function fitContent(table) {
             let fontHeight = cell.styles.fontSize / state().scaleFactor() * FONT_ROW_RATIO;
             cell.contentHeight = lineCount * fontHeight + cell.padding('vertical');
 
+            //Long text should always be at least 3 lines long
+            if (cell.type === 'long-text-field' && lineCount < 3) {
+                cell.contentHeight = 3 * fontHeight + cell.padding('vertical');
+            }
+
+            if (cell.type === 'radio' || cell.type === 'checkbox') {
+                cell.contentHeight = cell.options.length * fontHeight + cell.padding('vertical');
+            }
+
             if (cell.styles.minCellHeight > cell.contentHeight) {
                 cell.contentHeight = cell.styles.minCellHeight;
             }
 
             let realContentHeight = cell.contentHeight / cell.rowSpan;
             if (cell.rowSpan > 1 && (rowSpanHeight.count * rowSpanHeight.height < realContentHeight * cell.rowSpan)) {
-                rowSpanHeight = {height: realContentHeight, count: cell.rowSpan}
+                rowSpanHeight = { height: realContentHeight, count: cell.rowSpan }
             } else if (rowSpanHeight && rowSpanHeight.count > 0) {
                 if (rowSpanHeight.height > realContentHeight) {
                     realContentHeight = rowSpanHeight.height

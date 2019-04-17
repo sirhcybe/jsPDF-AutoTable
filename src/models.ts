@@ -118,9 +118,10 @@ export class Cell {
     styles: any;
     text: string[];
     section: 'head' | 'body' | 'foot';
-    type: 'text' | 'input' | 'image';
+    type: 'text' | 'text-field' | 'long-text-field' | 'image';
     fieldName: string;
     contentHeight?: number;
+    options: string[];
 
     contentWidth = 0;
     wrappedWidth = 0;
@@ -142,6 +143,7 @@ export class Cell {
         this.type = raw && raw.type || 'text';
         this.fieldName = raw && raw.fieldName || '';
         this.contentHeight = raw && raw.contentHeight || undefined;
+        this.options = raw && raw.options || [];
 
         let text = '';
         let content = raw && typeof raw.content !== 'undefined' ? raw.content : raw;
