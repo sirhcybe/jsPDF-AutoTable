@@ -66,10 +66,17 @@ declare class Cell {
 	styles: any;
 	text: string[];
 	section: 'head' | 'body' | 'foot';
+	type: 'text' | 'text-field' | 'long-text-field' | 'image';
+	fieldName: string;
+	contentHeight?: number;
+	options: string[];
 	contentWidth: number;
 	wrappedWidth: number;
 	minWidth: number;
-	textPos: {};
+	textPos: {
+		x?: number;
+		y?: number;
+	};
 	height: number;
 	width: number;
 	x: number;

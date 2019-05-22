@@ -4,6 +4,7 @@ declare global {
     const TextField: any;
     const RadioButton: any;
     const CheckBox: any;
+    const ComboBox: any;
     const AcroForm: any;
 }
 
@@ -58,6 +59,17 @@ jsPDF.API.autoTableInput = function (value, type, fieldName: string, x: number, 
             let labelY = y + (lineHeight * index) + fontSize * (2 - FONT_ROW_RATIO);
             this.text(option, x + lineHeight, labelY);
         });
+    } else if (type === 'combobox') {
+        var comboBox = new ComboBox();
+        comboBox.fieldName = fieldName;
+        comboBox.topIndex = 1;
+        //Make sure the combobox doesn't get too big
+        width = width > height * 20 ? width/3 : width; 
+        comboBox.Rect = [x, y, width, height];
+        comboBox.setOptions(options);
+        comboBox.value = options[0];
+        comboBox.defaultValue = options[0];
+        this.addField(comboBox);
     }
     return this;
 };

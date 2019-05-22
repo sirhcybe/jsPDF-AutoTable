@@ -18,7 +18,7 @@
 		var a = typeof exports === 'object' ? factory(require("jspdf")) : factory(root["jsPDF"]);
 		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
 	}
-})(window, function(__WEBPACK_EXTERNAL_MODULE__4__) {
+})(window, function(__WEBPACK_EXTERNAL_MODULE__3__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -197,7 +197,7 @@ exports.setDefaults = setDefaults;
 Object.defineProperty(exports, "__esModule", { value: true });
 var config_1 = __webpack_require__(2);
 var state_1 = __webpack_require__(0);
-var polyfills_1 = __webpack_require__(3);
+var polyfills_1 = __webpack_require__(4);
 function getStringWidth(text, styles) {
     var fontSize = styles.fontSize / state_1.default().scaleFactor();
     applyStyles(styles);
@@ -449,6 +449,12 @@ exports.getTheme = getTheme;
 
 /***/ }),
 /* 3 */
+/***/ (function(module, exports) {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE__3__;
+
+/***/ }),
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -485,12 +491,6 @@ exports.assign = assign;
 
 
 /***/ }),
-/* 4 */
-/***/ (function(module, exports) {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE__4__;
-
-/***/ }),
 /* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -502,8 +502,9 @@ var widthCalculator_1 = __webpack_require__(7);
 var inputParser_1 = __webpack_require__(8);
 var state_1 = __webpack_require__(0);
 __webpack_require__(15);
+__webpack_require__(16);
 var common_1 = __webpack_require__(1);
-var jsPDF = __webpack_require__(4);
+var jsPDF = __webpack_require__(3);
 function autoTable() {
     var args = [];
     for (var _i = 0; _i < arguments.length; _i++) {
@@ -677,7 +678,7 @@ function printFullRow(row, isLastRow) {
                 // Note that this will cut cells with specified custom min height at page break
                 if (Array.isArray(cell.text) && cell.text.length > remainingLineCount) {
                     remainingTexts[column.dataKey] = cell.text.splice(remainingLineCount, cell.text.length);
-                    var rCellHeight = cell.height - remainingPageSpace;
+                    var rCellHeight = cell.height - Math.floor(cell.text.length * fontHeight);
                     if (rCellHeight > remainingRowHeight) {
                         remainingRowHeight = rCellHeight;
                     }
@@ -773,11 +774,23 @@ function printRow(row) {
         if (fillStyle) {
             state_1.default().doc.rect(cell.x, table.cursor.y, cell.width, cell.height, fillStyle);
         }
-        state_1.default().doc.autoTableText(cell.text, cell.textPos.x, cell.textPos.y, {
-            halign: cell.styles.halign,
-            valign: cell.styles.valign,
-            maxWidth: cell.width - cell.padding('left') - cell.padding('right')
-        });
+        if (cell.type === 'text') {
+            state_1.default().doc.autoTableText(cell.text, cell.textPos.x, cell.textPos.y, {
+                halign: cell.styles.halign,
+                valign: cell.styles.valign,
+                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+            });
+        }
+        else if (cell.type === 'image') {
+            state_1.default().doc.addImage(cell.text[0], 'PNG', cell.x, table.cursor.y, cell.width, cell.height);
+        }
+        else {
+            state_1.default().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
+                halign: cell.styles.halign,
+                valign: cell.styles.valign,
+                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+            }, cell.options);
+        }
         table.callCellHooks(table.cellHooks.didDrawCell, cell, row, column);
         table.cursor.x += column.width;
     }
@@ -948,6 +961,18 @@ function fitContent(table) {
             var cell = row.cells[column.dataKey];
             if (!cell)
                 continue;
+            //Images may need to be scaled down to fit in the cell
+            //Text based content fitting should not apply to images
+            if (cell.type === 'image') {
+                if (cell.contentWidth > cell.width) {
+                    var ratio = cell.width / cell.contentWidth;
+                    row.height = ratio * cell.contentHeight;
+                }
+                else {
+                    row.height = cell.contentHeight;
+                }
+                continue;
+            }
             common_1.applyStyles(cell.styles);
             var textSpace = cell.width - cell.padding('horizontal');
             if (cell.styles.overflow === 'linebreak') {
@@ -966,6 +991,13 @@ function fitContent(table) {
             var lineCount = Array.isArray(cell.text) ? cell.text.length : 1;
             var fontHeight = cell.styles.fontSize / state_1.default().scaleFactor() * config_1.FONT_ROW_RATIO;
             cell.contentHeight = lineCount * fontHeight + cell.padding('vertical');
+            //Long text should always be at least 3 lines long
+            if (cell.type === 'long-text-field' && lineCount < 3) {
+                cell.contentHeight = 3 * fontHeight + cell.padding('vertical');
+            }
+            if (cell.type === 'radio' || cell.type === 'checkbox') {
+                cell.contentHeight = cell.options.length * fontHeight + cell.padding('vertical');
+            }
             if (cell.styles.minCellHeight > cell.contentHeight) {
                 cell.contentHeight = cell.styles.minCellHeight;
             }
@@ -1030,7 +1062,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var models_1 = __webpack_require__(9);
 var config_1 = __webpack_require__(2);
 var htmlParser_1 = __webpack_require__(12);
-var polyfills_1 = __webpack_require__(3);
+var polyfills_1 = __webpack_require__(4);
 var common_1 = __webpack_require__(1);
 var state_1 = __webpack_require__(0);
 var inputValidator_1 = __webpack_require__(14);
@@ -1351,6 +1383,10 @@ var Cell = /** @class */ (function () {
         this.colSpan = raw && raw.colSpan || 1;
         this.styles = assign(themeStyles, raw && raw.styles || {});
         this.section = section;
+        this.type = raw && raw.type || 'text';
+        this.fieldName = raw && raw.fieldName || '';
+        this.contentHeight = raw && raw.contentHeight || undefined;
+        this.options = raw && raw.options || [];
         var text = '';
         var content = raw && typeof raw.content !== 'undefined' ? raw.content : raw;
         content = content != undefined && content.dataKey != undefined ? content.title : content;
@@ -1365,7 +1401,12 @@ var Cell = /** @class */ (function () {
         }
         var splitRegex = /\r\n|\r|\n/g;
         this.text = text.split(splitRegex);
-        this.contentWidth = this.padding('horizontal') + common_1.getStringWidth(this.text, this.styles);
+        if (raw && raw.contentWidth) {
+            this.contentWidth = raw && raw.contentWidth || undefined;
+        }
+        else {
+            this.contentWidth = this.padding('horizontal') + common_1.getStringWidth(this.text, this.styles);
+        }
         if (typeof this.styles.cellWidth === 'number') {
             this.minWidth = this.styles.cellWidth;
             this.wrappedWidth = this.styles.cellWidth;
@@ -1816,7 +1857,10 @@ function checkStyles(styles) {
 /* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var jsPDF = __webpack_require__(4);
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var jsPDF = __webpack_require__(3);
 /**
  * Improved text function with halign and valign support
  * Inspiration from: http://stackoverflow.com/questions/28327510/align-text-right-using-jspdf/28433113#28433113
@@ -1860,6 +1904,82 @@ jsPDF.API.autoTableText = function (text, x, y, styles) {
     }
     else {
         this.text(text, x, y);
+    }
+    return this;
+};
+
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var jsPDF = __webpack_require__(3);
+/**
+ * Improved text function with halign and valign support
+ * Inspiration from: http://stackoverflow.com/questions/28327510/align-text-right-using-jspdf/28433113#28433113
+ */
+jsPDF.API.autoTableInput = function (value, type, fieldName, x, y, width, height, styles, options) {
+    var _this = this;
+    //styles = styles || {};
+    if (type.includes('text')) {
+        var textField = new TextField();
+        textField.Rect = [x, y, width, height];
+        if (type === 'long-text-field') {
+            textField.multiline = true;
+        }
+        textField.value = value;
+        textField.fieldName = fieldName;
+        this.addField(textField);
+    }
+    else if (type === 'radio') {
+        var radioGroup = new RadioButton();
+        radioGroup.value = value;
+        radioGroup.fieldName = fieldName;
+        //radioGroup.Subtype = "Form";
+        this.addField(radioGroup);
+        var k_1 = this.internal.scaleFactor;
+        var lineHeight_1 = this.internal.getFontSize() / k_1;
+        options.forEach(function (option, index) {
+            var radioButton = radioGroup.createOption(option);
+            radioButton.Rect = [x, y + (lineHeight_1 * index), lineHeight_1, lineHeight_1];
+            if (option === value) {
+                radioButton.AS = '/' + option;
+            }
+            var FONT_ROW_RATIO = 1.15;
+            var fontSize = _this.internal.getFontSize() / k_1;
+            var labelY = y + (lineHeight_1 * index) + fontSize * (2 - FONT_ROW_RATIO);
+            _this.text(option, x + lineHeight_1, labelY);
+        });
+        radioGroup.setAppearance(AcroForm.Appearance.RadioButton.Cross);
+    }
+    else if (type === 'checkbox') {
+        options.forEach(function (option, index) {
+            var k = _this.internal.scaleFactor;
+            var lineHeight = _this.internal.getFontSize() / k;
+            var checkBox = new CheckBox();
+            checkBox.fieldName = fieldName + index;
+            checkBox.Rect = [x, y + (lineHeight * index), lineHeight, lineHeight];
+            _this.addField(checkBox);
+            var FONT_ROW_RATIO = 1.15;
+            var fontSize = _this.internal.getFontSize() / k;
+            var labelY = y + (lineHeight * index) + fontSize * (2 - FONT_ROW_RATIO);
+            _this.text(option, x + lineHeight, labelY);
+        });
+    }
+    else if (type === 'combobox') {
+        var comboBox = new ComboBox();
+        comboBox.fieldName = fieldName;
+        comboBox.topIndex = 1;
+        //Make sure the combobox doesn't get too big
+        width = width > height * 20 ? width / 3 : width;
+        comboBox.Rect = [x, y, width, height];
+        comboBox.setOptions(options);
+        comboBox.value = options[0];
+        comboBox.defaultValue = options[0];
+        this.addField(comboBox);
     }
     return this;
 };
