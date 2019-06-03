@@ -118,10 +118,11 @@ export class Cell {
     styles: any;
     text: string[];
     section: 'head' | 'body' | 'foot';
-    type: 'text' | 'text-field' | 'long-text-field' | 'image';
+    type: 'text' | 'text-field' | 'long-text-field' | 'image' | 'checkbox' | 'radio';
     fieldName: string;
     contentHeight?: number;
     options: string[];
+    value: string;
 
     contentWidth = 0;
     wrappedWidth = 0;
@@ -156,6 +157,11 @@ export class Cell {
             // Stringify 0 and false, but not undefined or null
             text = content != undefined ? '' + content : '';
         }
+
+        if (this.type === 'checkbox') {
+            text = this.options[0] || '';
+        } 
+        this.value = content != undefined ? '' + content : '';
 
         let splitRegex = /\r\n|\r|\n/g;
         this.text = text.split(splitRegex);

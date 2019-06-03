@@ -126,14 +126,23 @@ function fitContent(table) {
                 } else {
                     row.height = cell.contentHeight;
                 }
+                row.maxCellHeight = row.height;
                 continue;
             }
 
             applyStyles(cell.styles);
             let textSpace = cell.width - cell.padding('horizontal');
             if (cell.styles.overflow === 'linebreak') {
-                // Add one pt to textSpace to fix rounding error
-                cell.text = state().doc.splitTextToSize(cell.text, textSpace + 1 / (state().scaleFactor() || 1), { fontSize: cell.styles.fontSize });
+                if (cell.type === 'checkbox') {
+                    const lineHeight = cell.styles.fontSize / state().scaleFactor();
+                    // Add one pt to textSpace to fix rounding error, lineheight to account for checkbox, 3 px margin
+                    const size = textSpace + 1 - lineHeight - 3 / (state().scaleFactor() || 1);
+                    cell.text = state().doc.splitTextToSize(cell.text, size, { fontSize: cell.styles.fontSize });
+                } else {
+                    // Add one pt to textSpace to fix rounding error
+                    const size = textSpace + 1 / (state().scaleFactor() || 1);
+                    cell.text = state().doc.splitTextToSize(cell.text, size, { fontSize: cell.styles.fontSize });
+                }
             } else if (cell.styles.overflow === 'ellipsize') {
                 cell.text = ellipsize(cell.text, textSpace, cell.styles);
             } else if (cell.styles.overflow === 'hidden') {
@@ -151,9 +160,9 @@ function fitContent(table) {
                 cell.contentHeight = 3 * fontHeight + cell.padding('vertical');
             }
 
-            if (cell.type === 'radio' || cell.type === 'checkbox') {
-                cell.contentHeight = cell.options.length * fontHeight + cell.padding('vertical');
-            }
+            // if (cell.type === 'radio' || cell.type === 'checkbox') {
+            //     cell.contentHeight = cell.options.length * fontHeight + cell.padding('vertical');
+            // }
 
             if (cell.styles.minCellHeight > cell.contentHeight) {
                 cell.contentHeight = cell.styles.minCellHeight;
