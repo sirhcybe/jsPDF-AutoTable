@@ -17,7 +17,7 @@ export function calculateWidths(table: Table) {
 
     let copy = table.columns.slice(0);
     let diffWidth = table.width - table.wrappedWidth;
-    distributeWidth(copy, diffWidth, table.wrappedWidth);
+    distributeWidth(copy, diffWidth, table.wrappedWidth, table.settings);
 
     applyColSpans(table);
     fitContent(table);
@@ -186,13 +186,15 @@ function fitContent(table) {
     }
 }
 
-function distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth) {
+function distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth, settings) {
     for (let i = 0; i < autoColumns.length; i++) {
         let column = autoColumns[i];
         let ratio = column.wrappedWidth / wrappedAutoColumnsWidth;
         let suggestedChange = diffWidth * ratio;
         let suggestedWidth = column.wrappedWidth + suggestedChange;
-        if (suggestedWidth >= column.minWidth) {
+        if (settings.evenlySpacedColumns) {
+            column.width = (diffWidth + wrappedAutoColumnsWidth) / autoColumns.length;
+        } else if (suggestedWidth >= column.minWidth) {
             column.width = suggestedWidth;
         } else {
             // We can't reduce the width of this column. Mark as none auto column and start over
@@ -200,7 +202,7 @@ function distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth) {
             column.width = column.minWidth + 1 / state().scaleFactor();
             wrappedAutoColumnsWidth -= column.wrappedWidth;
             autoColumns.splice(i, 1);
-            distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth);
+            distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth, settings);
             break;
         }
     }
