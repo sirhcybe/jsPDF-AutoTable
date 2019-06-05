@@ -160,10 +160,6 @@ function fitContent(table) {
                 cell.contentHeight = 3 * fontHeight + cell.padding('vertical');
             }
 
-            // if (cell.type === 'radio' || cell.type === 'checkbox') {
-            //     cell.contentHeight = cell.options.length * fontHeight + cell.padding('vertical');
-            // }
-
             if (cell.styles.minCellHeight > cell.contentHeight) {
                 cell.contentHeight = cell.styles.minCellHeight;
             }

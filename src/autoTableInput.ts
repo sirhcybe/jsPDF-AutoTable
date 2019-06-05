@@ -60,27 +60,6 @@ jsPDF.API.autoTableInput = function (
         checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
         checkBox.value = value;
         this.addField(checkBox);
-
-        // if(options) {
-        //     This approach has some issues with long option text
-        //     options.forEach((option, index) => {
-        //         var checkBox = new CheckBox();
-        //         checkBox.fieldName = fieldName + index;
-        //         checkBox.Rect = [x, y + (lineHeight * index), lineHeight, lineHeight];
-        //         this.addField(checkBox);
-        //         let FONT_ROW_RATIO = 1.15;
-        //         let fontSize = this.internal.getFontSize() / k;
-        //         let labelY = y + (lineHeight * index) + fontSize * (2 - FONT_ROW_RATIO);
-        //         this.text(option, x + lineHeight, labelY);
-        //     });
-        // } else {
-        //     var checkBox = new CheckBox();
-        //     checkBox.fieldName = fieldName;
-        //     checkBox.Rect = [x, y + lineHeight, lineHeight, lineHeight];
-        //     checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
-        //     checkBox.value = value;
-        //     this.addField(checkBox);
-        // }
     } else if (type === 'combobox') {
         var comboBox = new ComboBox();
         comboBox.fieldName = fieldName;
