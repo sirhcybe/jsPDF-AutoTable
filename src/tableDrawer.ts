@@ -1,6 +1,6 @@
-import {FONT_ROW_RATIO} from './config';
-import {getFillStyle, addTableBorder, applyStyles, applyUserStyles} from './common';
-import {Row, Table, Cell} from "./models";
+import { FONT_ROW_RATIO } from './config';
+import { getFillStyle, addTableBorder, applyStyles, applyUserStyles } from './common';
+import { Row, Table, Cell } from "./models";
 import state from "./state";
 
 export function drawTable(table: Table) {
@@ -20,7 +20,7 @@ export function drawTable(table: Table) {
     }
     table.pageStartX = table.cursor.x;
     table.pageStartY = table.cursor.y;
-    
+
     table.startPageNumber = state().pageNumber();
 
     applyUserStyles();
@@ -28,7 +28,7 @@ export function drawTable(table: Table) {
         table.head.forEach((row) => printRow(row))
     }
     applyUserStyles();
-    table.body.forEach(function(row, index) {
+    table.body.forEach(function (row, index) {
         printFullRow(row, index === table.body.length - 1);
     });
     applyUserStyles();
@@ -174,7 +174,7 @@ function printRow(row) {
         if (fillStyle) {
             state().doc.rect(cell.x, table.cursor.y, cell.width, cell.height, fillStyle);
         }
-        if(cell.type === 'text') {
+        if (cell.type === 'text' || cell.type.toLowerCase().indexOf('header') > 0) {
             state().doc.autoTableText(cell.text, cell.textPos.x, cell.textPos.y, {
                 halign: cell.styles.halign,
                 valign: cell.styles.valign,
@@ -182,19 +182,31 @@ function printRow(row) {
             });
         } else if (cell.type === 'image') {
             state().doc.addImage(cell.text[0], 'PNG', cell.x, table.cursor.y, cell.width, cell.height);
+        } else if (cell.type === 'checkbox') {
+            state().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
+                halign: cell.styles.halign,
+                valign: cell.styles.valign,
+                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+            }, cell.options, cell.value);
+            const lineHeight = cell.styles.fontSize / state().scaleFactor();
+            state().doc.autoTableText(cell.text, cell.textPos.x + lineHeight, cell.textPos.y, {
+                halign: cell.styles.halign,
+                valign: cell.styles.valign,
+                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+            });
         } else {
             state().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
                 halign: cell.styles.halign,
                 valign: cell.styles.valign,
                 maxWidth: cell.width - cell.padding('left') - cell.padding('right')
-            }, cell.options);
+            }, cell.options, cell.value);
         }
 
         table.callCellHooks(table.cellHooks.didDrawCell, cell, row, column);
 
         table.cursor.x += column.width;
     }
-    
+
     table.cursor.y += row.height;
 }
 
@@ -224,7 +236,7 @@ export function addPage() {
     addTableBorder();
     nextPage(state().doc);
     table.pageNumber++;
-    table.cursor = {x: table.margin('left'), y: table.margin('top')};
+    table.cursor = { x: table.margin('left'), y: table.margin('top') };
     table.pageStartX = table.cursor.x;
     table.pageStartY = table.cursor.y;
     if (table.settings.showHead === true || table.settings.showHead === 'everyPage') {
