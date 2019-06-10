@@ -1951,6 +1951,8 @@ var jsPDF = __webpack_require__(3);
 jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height, styles, options, value) {
     var _this = this;
     //styles = styles || {};
+    this.setDrawColor(0);
+    this.setLineWidth(.5);
     if (type.includes('text')) {
         var textField = new TextField();
         textField.Rect = [x, y, width, height];
@@ -1959,13 +1961,15 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
         }
         textField.value = text;
         textField.fieldName = fieldName;
+        textField.fontSize = 10;
+        textField.maxFontSize = 10;
         this.addField(textField);
+        this.rect(x, y, width, height);
     }
     else if (type === 'radio') {
         var radioGroup = new RadioButton();
         radioGroup.value = value;
         radioGroup.fieldName = fieldName;
-        //radioGroup.Subtype = "Form";
         this.addField(radioGroup);
         var k_1 = this.internal.scaleFactor;
         var lineHeight_1 = this.internal.getFontSize() / k_1;
@@ -1975,10 +1979,11 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
             if (option === value) {
                 radioButton.AS = '/' + option;
             }
+            _this.rect(x, y + (lineHeight_1 * index), lineHeight_1, lineHeight_1);
             var FONT_ROW_RATIO = 1.15;
             var fontSize = _this.internal.getFontSize() / k_1;
             var labelY = y + (lineHeight_1 * index) + fontSize * (2 - FONT_ROW_RATIO);
-            _this.text(option, x + lineHeight_1, labelY);
+            _this.text(option, x + lineHeight_1 + 3, labelY); //3 pixels of padding for the 
         });
         radioGroup.setAppearance(AcroForm.Appearance.RadioButton.Cross);
     }
@@ -1990,7 +1995,10 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
         checkBox.Rect = [x, y + lineHeight, lineHeight, lineHeight];
         checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
         checkBox.value = value;
+        checkBox.caption = '5';
+        checkBox.maxFontSize = 10;
         this.addField(checkBox);
+        this.rect(x, y + lineHeight, lineHeight, lineHeight);
     }
     else if (type === 'combobox') {
         var comboBox = new ComboBox();
