@@ -790,12 +790,14 @@ function printRow(row) {
                 valign: cell.styles.valign,
                 maxWidth: cell.width - cell.padding('left') - cell.padding('right')
             }, cell.options, cell.value);
-            var lineHeight = cell.styles.fontSize / state_1.default().scaleFactor();
-            state_1.default().doc.autoTableText(cell.text, cell.textPos.x + lineHeight, cell.textPos.y, {
-                halign: cell.styles.halign,
-                valign: cell.styles.valign,
-                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
-            });
+            if (!cell.hideLabel) {
+                var lineHeight = cell.styles.fontSize / state_1.default().scaleFactor();
+                state_1.default().doc.autoTableText(cell.text, cell.textPos.x + lineHeight, cell.textPos.y, {
+                    halign: cell.styles.halign,
+                    valign: cell.styles.valign,
+                    maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+                });
+            }
         }
         else {
             state_1.default().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
@@ -1410,6 +1412,7 @@ var Cell = /** @class */ (function () {
         this.fieldName = raw && raw.fieldName || '';
         this.contentHeight = raw && raw.contentHeight || undefined;
         this.options = raw && raw.options || [];
+        this.hideLabel = raw && raw.hideLabel || false;
         var text = '';
         var content = raw && typeof raw.content !== 'undefined' ? raw.content : raw;
         content = content != undefined && content.dataKey != undefined ? content.title : content;
@@ -1961,8 +1964,8 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
         }
         textField.value = text;
         textField.fieldName = fieldName;
-        textField.fontSize = 10;
-        textField.maxFontSize = 10;
+        textField.fontSize = this.internal.getFontSize();
+        textField.maxFontSize = this.internal.getFontSize();
         this.addField(textField);
         this.rect(x, y, width, height);
     }
@@ -1996,7 +1999,7 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
         checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
         checkBox.value = value;
         checkBox.caption = '5';
-        checkBox.maxFontSize = 10;
+        checkBox.maxFontSize = this.internal.getFontSize();
         this.addField(checkBox);
         this.rect(x, y + lineHeight, lineHeight, lineHeight);
     }
