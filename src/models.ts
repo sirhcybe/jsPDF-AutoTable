@@ -123,6 +123,7 @@ export class Cell {
     contentHeight?: number;
     options: string[];
     value: string;
+    hideLabel: true;
 
     contentWidth = 0;
     wrappedWidth = 0;
@@ -145,6 +146,7 @@ export class Cell {
         this.fieldName = raw && raw.fieldName || '';
         this.contentHeight = raw && raw.contentHeight || undefined;
         this.options = raw && raw.options || [];
+        this.hideLabel = raw && raw.hideLabel || false;
 
         let text = '';
         let content = raw && typeof raw.content !== 'undefined' ? raw.content : raw;

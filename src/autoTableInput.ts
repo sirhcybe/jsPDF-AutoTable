@@ -30,8 +30,8 @@ jsPDF.API.autoTableInput = function (
         }
         textField.value = text;
         textField.fieldName = fieldName;
-        textField.fontSize = 10;
-        textField.maxFontSize = 10;
+        textField.fontSize = this.internal.getFontSize();
+        textField.maxFontSize = this.internal.getFontSize();
         this.addField(textField);
         this.rect(x, y, width, height);
     } else if (type === 'radio') {
@@ -65,7 +65,7 @@ jsPDF.API.autoTableInput = function (
         checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
         checkBox.value = value;
         checkBox.caption = '5';
-        checkBox.maxFontSize = 10;
+        checkBox.maxFontSize = this.internal.getFontSize();
         this.addField(checkBox);
         this.rect(x, y + lineHeight, lineHeight, lineHeight);
     } else if (type === 'combobox') {
