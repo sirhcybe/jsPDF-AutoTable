@@ -1996,8 +1996,7 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
         var checkBox = new CheckBox();
         checkBox.fieldName = fieldName;
         checkBox.Rect = [x, y + lineHeight, lineHeight, lineHeight];
-        checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
-        checkBox.value = value;
+        checkBox.value = value === options[0] ? 'On' : 'Off';
         checkBox.caption = '5';
         checkBox.maxFontSize = this.internal.getFontSize();
         this.addField(checkBox);
