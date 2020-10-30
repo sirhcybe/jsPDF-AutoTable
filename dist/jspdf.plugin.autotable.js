@@ -784,12 +784,25 @@ function printRow(row) {
         else if (cell.type === 'image') {
             state_1.default().doc.addImage(cell.text[0], 'PNG', cell.x, table.cursor.y, cell.width, cell.height);
         }
+        else if (cell.type === 'checkbox') {
+            state_1.default().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
+                halign: cell.styles.halign,
+                valign: cell.styles.valign,
+                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+            }, cell.options, cell.value);
+            var lineHeight = cell.styles.fontSize / state_1.default().scaleFactor();
+            state_1.default().doc.autoTableText(cell.text, cell.textPos.x + lineHeight, cell.textPos.y, {
+                halign: cell.styles.halign,
+                valign: cell.styles.valign,
+                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+            });
+        }
         else {
             state_1.default().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
                 halign: cell.styles.halign,
                 valign: cell.styles.valign,
                 maxWidth: cell.width - cell.padding('left') - cell.padding('right')
-            }, cell.options);
+            }, cell.options, cell.value);
         }
         table.callCellHooks(table.cellHooks.didDrawCell, cell, row, column);
         table.cursor.x += column.width;
@@ -971,13 +984,23 @@ function fitContent(table) {
                 else {
                     row.height = cell.contentHeight;
                 }
+                row.maxCellHeight = row.height;
                 continue;
             }
             common_1.applyStyles(cell.styles);
             var textSpace = cell.width - cell.padding('horizontal');
             if (cell.styles.overflow === 'linebreak') {
-                // Add one pt to textSpace to fix rounding error
-                cell.text = state_1.default().doc.splitTextToSize(cell.text, textSpace + 1 / (state_1.default().scaleFactor() || 1), { fontSize: cell.styles.fontSize });
+                if (cell.type === 'checkbox') {
+                    var lineHeight = cell.styles.fontSize / state_1.default().scaleFactor();
+                    // Add one pt to textSpace to fix rounding error, lineheight to account for checkbox, 3 px margin
+                    var size = textSpace + 1 - lineHeight - 3 / (state_1.default().scaleFactor() || 1);
+                    cell.text = state_1.default().doc.splitTextToSize(cell.text, size, { fontSize: cell.styles.fontSize });
+                }
+                else {
+                    // Add one pt to textSpace to fix rounding error
+                    var size = textSpace + 1 / (state_1.default().scaleFactor() || 1);
+                    cell.text = state_1.default().doc.splitTextToSize(cell.text, size, { fontSize: cell.styles.fontSize });
+                }
             }
             else if (cell.styles.overflow === 'ellipsize') {
                 cell.text = common_1.ellipsize(cell.text, textSpace, cell.styles);
@@ -995,9 +1018,9 @@ function fitContent(table) {
             if (cell.type === 'long-text-field' && lineCount < 3) {
                 cell.contentHeight = 3 * fontHeight + cell.padding('vertical');
             }
-            if (cell.type === 'radio' || cell.type === 'checkbox') {
-                cell.contentHeight = cell.options.length * fontHeight + cell.padding('vertical');
-            }
+            // if (cell.type === 'radio' || cell.type === 'checkbox') {
+            //     cell.contentHeight = cell.options.length * fontHeight + cell.padding('vertical');
+            // }
             if (cell.styles.minCellHeight > cell.contentHeight) {
                 cell.contentHeight = cell.styles.minCellHeight;
             }
@@ -1399,6 +1422,10 @@ var Cell = /** @class */ (function () {
             // Stringify 0 and false, but not undefined or null
             text = content != undefined ? '' + content : '';
         }
+        if (this.type === 'checkbox') {
+            text = this.options[0] || '';
+        }
+        this.value = content != undefined ? '' + content : '';
         var splitRegex = /\r\n|\r|\n/g;
         this.text = text.split(splitRegex);
         if (raw && raw.contentWidth) {
@@ -1921,7 +1948,7 @@ var jsPDF = __webpack_require__(3);
  * Improved text function with halign and valign support
  * Inspiration from: http://stackoverflow.com/questions/28327510/align-text-right-using-jspdf/28433113#28433113
  */
-jsPDF.API.autoTableInput = function (value, type, fieldName, x, y, width, height, styles, options) {
+jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height, styles, options, value) {
     var _this = this;
     //styles = styles || {};
     if (type.includes('text')) {
@@ -1930,7 +1957,7 @@ jsPDF.API.autoTableInput = function (value, type, fieldName, x, y, width, height
         if (type === 'long-text-field') {
             textField.multiline = true;
         }
-        textField.value = value;
+        textField.value = text;
         textField.fieldName = fieldName;
         this.addField(textField);
     }
@@ -1956,18 +1983,34 @@ jsPDF.API.autoTableInput = function (value, type, fieldName, x, y, width, height
         radioGroup.setAppearance(AcroForm.Appearance.RadioButton.Cross);
     }
     else if (type === 'checkbox') {
-        options.forEach(function (option, index) {
-            var k = _this.internal.scaleFactor;
-            var lineHeight = _this.internal.getFontSize() / k;
-            var checkBox = new CheckBox();
-            checkBox.fieldName = fieldName + index;
-            checkBox.Rect = [x, y + (lineHeight * index), lineHeight, lineHeight];
-            _this.addField(checkBox);
-            var FONT_ROW_RATIO = 1.15;
-            var fontSize = _this.internal.getFontSize() / k;
-            var labelY = y + (lineHeight * index) + fontSize * (2 - FONT_ROW_RATIO);
-            _this.text(option, x + lineHeight, labelY);
-        });
+        var k = this.internal.scaleFactor;
+        var lineHeight = this.internal.getFontSize() / k;
+        var checkBox = new CheckBox();
+        checkBox.fieldName = fieldName;
+        checkBox.Rect = [x, y + lineHeight, lineHeight, lineHeight];
+        checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
+        checkBox.value = value;
+        this.addField(checkBox);
+        // if(options) {
+        //     This approach has some issues with long option text
+        //     options.forEach((option, index) => {
+        //         var checkBox = new CheckBox();
+        //         checkBox.fieldName = fieldName + index;
+        //         checkBox.Rect = [x, y + (lineHeight * index), lineHeight, lineHeight];
+        //         this.addField(checkBox);
+        //         let FONT_ROW_RATIO = 1.15;
+        //         let fontSize = this.internal.getFontSize() / k;
+        //         let labelY = y + (lineHeight * index) + fontSize * (2 - FONT_ROW_RATIO);
+        //         this.text(option, x + lineHeight, labelY);
+        //     });
+        // } else {
+        //     var checkBox = new CheckBox();
+        //     checkBox.fieldName = fieldName;
+        //     checkBox.Rect = [x, y + lineHeight, lineHeight, lineHeight];
+        //     checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
+        //     checkBox.value = value;
+        //     this.addField(checkBox);
+        // }
     }
     else if (type === 'combobox') {
         var comboBox = new ComboBox();
@@ -1977,8 +2020,8 @@ jsPDF.API.autoTableInput = function (value, type, fieldName, x, y, width, height
         width = width > height * 20 ? width / 3 : width;
         comboBox.Rect = [x, y, width, height];
         comboBox.setOptions(options);
-        comboBox.value = options[0];
-        comboBox.defaultValue = options[0];
+        comboBox.value = value;
+        comboBox.defaultValue = value;
         this.addField(comboBox);
     }
     return this;
