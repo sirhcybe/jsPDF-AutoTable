@@ -774,7 +774,7 @@ function printRow(row) {
         if (fillStyle) {
             state_1.default().doc.rect(cell.x, table.cursor.y, cell.width, cell.height, fillStyle);
         }
-        if (cell.type === 'text') {
+        if (cell.type === 'text' || cell.type.toLowerCase().indexOf('header') > 0) {
             state_1.default().doc.autoTableText(cell.text, cell.textPos.x, cell.textPos.y, {
                 halign: cell.styles.halign,
                 valign: cell.styles.valign,
@@ -790,12 +790,14 @@ function printRow(row) {
                 valign: cell.styles.valign,
                 maxWidth: cell.width - cell.padding('left') - cell.padding('right')
             }, cell.options, cell.value);
-            var lineHeight = cell.styles.fontSize / state_1.default().scaleFactor();
-            state_1.default().doc.autoTableText(cell.text, cell.textPos.x + lineHeight, cell.textPos.y, {
-                halign: cell.styles.halign,
-                valign: cell.styles.valign,
-                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
-            });
+            if (!cell.hideLabel) {
+                var lineHeight = cell.styles.fontSize / state_1.default().scaleFactor();
+                state_1.default().doc.autoTableText(cell.text, cell.textPos.x + lineHeight, cell.textPos.y, {
+                    halign: cell.styles.halign,
+                    valign: cell.styles.valign,
+                    maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+                });
+            }
         }
         else {
             state_1.default().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
@@ -873,7 +875,7 @@ function calculateWidths(table) {
     }
     var copy = table.columns.slice(0);
     var diffWidth = table.width - table.wrappedWidth;
-    distributeWidth(copy, diffWidth, table.wrappedWidth);
+    distributeWidth(copy, diffWidth, table.wrappedWidth, table.settings);
     applyColSpans(table);
     fitContent(table);
     applyRowSpans(table);
@@ -1018,9 +1020,6 @@ function fitContent(table) {
             if (cell.type === 'long-text-field' && lineCount < 3) {
                 cell.contentHeight = 3 * fontHeight + cell.padding('vertical');
             }
-            // if (cell.type === 'radio' || cell.type === 'checkbox') {
-            //     cell.contentHeight = cell.options.length * fontHeight + cell.padding('vertical');
-            // }
             if (cell.styles.minCellHeight > cell.contentHeight) {
                 cell.contentHeight = cell.styles.minCellHeight;
             }
@@ -1042,13 +1041,16 @@ function fitContent(table) {
         rowSpanHeight.count--;
     }
 }
-function distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth) {
+function distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth, settings) {
     for (var i = 0; i < autoColumns.length; i++) {
         var column = autoColumns[i];
         var ratio = column.wrappedWidth / wrappedAutoColumnsWidth;
         var suggestedChange = diffWidth * ratio;
         var suggestedWidth = column.wrappedWidth + suggestedChange;
-        if (suggestedWidth >= column.minWidth) {
+        if (settings.evenlySpacedColumns) {
+            column.width = (diffWidth + wrappedAutoColumnsWidth) / autoColumns.length;
+        }
+        else if (suggestedWidth >= column.minWidth) {
             column.width = suggestedWidth;
         }
         else {
@@ -1057,7 +1059,7 @@ function distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth) {
             column.width = column.minWidth + 1 / state_1.default().scaleFactor();
             wrappedAutoColumnsWidth -= column.wrappedWidth;
             autoColumns.splice(i, 1);
-            distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth);
+            distributeWidth(autoColumns, diffWidth, wrappedAutoColumnsWidth, settings);
             break;
         }
     }
@@ -1410,6 +1412,7 @@ var Cell = /** @class */ (function () {
         this.fieldName = raw && raw.fieldName || '';
         this.contentHeight = raw && raw.contentHeight || undefined;
         this.options = raw && raw.options || [];
+        this.hideLabel = raw && raw.hideLabel || false;
         var text = '';
         var content = raw && typeof raw.content !== 'undefined' ? raw.content : raw;
         content = content != undefined && content.dataKey != undefined ? content.title : content;
@@ -1951,6 +1954,8 @@ var jsPDF = __webpack_require__(3);
 jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height, styles, options, value) {
     var _this = this;
     //styles = styles || {};
+    this.setDrawColor(0);
+    this.setLineWidth(.5);
     if (type.includes('text')) {
         var textField = new TextField();
         textField.Rect = [x, y, width, height];
@@ -1959,13 +1964,15 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
         }
         textField.value = text;
         textField.fieldName = fieldName;
+        textField.fontSize = this.internal.getFontSize();
+        textField.maxFontSize = this.internal.getFontSize();
         this.addField(textField);
+        this.rect(x, y, width, height);
     }
     else if (type === 'radio') {
         var radioGroup = new RadioButton();
         radioGroup.value = value;
         radioGroup.fieldName = fieldName;
-        //radioGroup.Subtype = "Form";
         this.addField(radioGroup);
         var k_1 = this.internal.scaleFactor;
         var lineHeight_1 = this.internal.getFontSize() / k_1;
@@ -1975,10 +1982,11 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
             if (option === value) {
                 radioButton.AS = '/' + option;
             }
+            _this.rect(x, y + (lineHeight_1 * index), lineHeight_1, lineHeight_1);
             var FONT_ROW_RATIO = 1.15;
             var fontSize = _this.internal.getFontSize() / k_1;
             var labelY = y + (lineHeight_1 * index) + fontSize * (2 - FONT_ROW_RATIO);
-            _this.text(option, x + lineHeight_1, labelY);
+            _this.text(option, x + lineHeight_1 + 3, labelY); //3 pixels of padding for the 
         });
         radioGroup.setAppearance(AcroForm.Appearance.RadioButton.Cross);
     }
@@ -1989,28 +1997,11 @@ jsPDF.API.autoTableInput = function (text, type, fieldName, x, y, width, height,
         checkBox.fieldName = fieldName;
         checkBox.Rect = [x, y + lineHeight, lineHeight, lineHeight];
         checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
-        checkBox.value = value;
+        checkBox.value = value === options[0] ? 'On' : 'Off';
+        checkBox.caption = '5';
+        checkBox.maxFontSize = this.internal.getFontSize();
         this.addField(checkBox);
-        // if(options) {
-        //     This approach has some issues with long option text
-        //     options.forEach((option, index) => {
-        //         var checkBox = new CheckBox();
-        //         checkBox.fieldName = fieldName + index;
-        //         checkBox.Rect = [x, y + (lineHeight * index), lineHeight, lineHeight];
-        //         this.addField(checkBox);
-        //         let FONT_ROW_RATIO = 1.15;
-        //         let fontSize = this.internal.getFontSize() / k;
-        //         let labelY = y + (lineHeight * index) + fontSize * (2 - FONT_ROW_RATIO);
-        //         this.text(option, x + lineHeight, labelY);
-        //     });
-        // } else {
-        //     var checkBox = new CheckBox();
-        //     checkBox.fieldName = fieldName;
-        //     checkBox.Rect = [x, y + lineHeight, lineHeight, lineHeight];
-        //     checkBox.appearanceState = value === options[0] ? 'On' : 'Off';
-        //     checkBox.value = value;
-        //     this.addField(checkBox);
-        // }
+        this.rect(x, y + lineHeight, lineHeight, lineHeight);
     }
     else if (type === 'combobox') {
         var comboBox = new ComboBox();

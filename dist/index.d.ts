@@ -71,6 +71,7 @@ declare class Cell {
 	contentHeight?: number;
 	options: string[];
 	value: string;
+	hideLabel: true;
 	contentWidth: number;
 	wrappedWidth: number;
 	minWidth: number;
