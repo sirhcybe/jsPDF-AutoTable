@@ -89,8 +89,8 @@ jsPDF.API.autoTableInput = function (
         width = width > height * 20 ? width/3 : width; 
         comboBox.Rect = [x, y, width, height];
         comboBox.setOptions(options);
-        comboBox.value = options[0];
-        comboBox.defaultValue = options[0];
+        comboBox.value = value;
+        comboBox.defaultValue = value;
         this.addField(comboBox);
     }
     return this;
