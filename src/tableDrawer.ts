@@ -188,12 +188,14 @@ function printRow(row) {
                 valign: cell.styles.valign,
                 maxWidth: cell.width - cell.padding('left') - cell.padding('right')
             }, cell.options, cell.value);
-            const lineHeight = cell.styles.fontSize / state().scaleFactor();
-            state().doc.autoTableText(cell.text, cell.textPos.x + lineHeight, cell.textPos.y, {
-                halign: cell.styles.halign,
-                valign: cell.styles.valign,
-                maxWidth: cell.width - cell.padding('left') - cell.padding('right')
-            });
+            if(!cell.hideLabel) {
+                const lineHeight = cell.styles.fontSize / state().scaleFactor();
+                state().doc.autoTableText(cell.text, cell.textPos.x + lineHeight, cell.textPos.y, {
+                    halign: cell.styles.halign,
+                    valign: cell.styles.valign,
+                    maxWidth: cell.width - cell.padding('left') - cell.padding('right')
+                });
+            }
         } else {
             state().doc.autoTableInput(cell.text, cell.type, cell.fieldName, cell.x, table.cursor.y, cell.width, cell.height, {
                 halign: cell.styles.halign,
